@@ -161,7 +161,7 @@ async function handle(event) {
       };
 
       err_return['debug'] = debug_get_err(e, request);
-      response = makeJsonResponse(err_return);
+      response = makeJsonResponse(err_return, 500);
       // 当发生Internal Error的时候不应该进行cache
     }
   }
