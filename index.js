@@ -160,10 +160,7 @@ async function handle(event) {
         error: `Internal Error, Please contact @${AUTHOR}. Exception: ${e.message}`
       };
 
-      if (uri.searchParams.get("debug") === '1') {
-        err_return['debug'] = debug_get_err(e, request);
-      }
-
+      err_return['debug'] = debug_get_err(e, request);
       response = makeJsonResponse(err_return);
       // 当发生Internal Error的时候不应该进行cache
     }
