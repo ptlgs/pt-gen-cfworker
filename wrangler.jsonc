@@ -1,0 +1,5 @@
+{
+  "name": "ptgen",
+  "main": "dist/bundle.js",
+  "compatibility_date": "2026-02-08"
+}
