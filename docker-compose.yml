@@ -8,16 +8,19 @@ services:
     ports:
       - "8787:8787"
     environment:
-      # Optional: Set environment variables
+      # Optional: Author name in API responses
       - AUTHOR=${AUTHOR:-Rhilip}
+      
+      # Optional: API key for access control
       # - APIKEY=${APIKEY}
+      
+      # Optional: Disable search functionality
       # - DISABLE_SEARCH=${DISABLE_SEARCH}
       
-      # Optional: HTTP/HTTPS Proxy for bypassing geo-restrictions (e.g., Douban)
+      # Optional: HTTP/HTTPS Proxy for geo-restrictions (e.g., Douban)
       # Format: http://username:password@hostname:port
       # - HTTP_PROXY=${HTTP_PROXY}
       # - HTTPS_PROXY=${HTTPS_PROXY}
-      # Or use PROXY_URL as an alternative:
       # - PROXY_URL=${PROXY_URL}
       
     restart: unless-stopped

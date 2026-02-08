@@ -13,7 +13,8 @@
     "license": "MIT",
     "dependencies": {
         "cheerio": "^1.0.0-rc.10",
-        "html2bbcode": "^1.2.6"
+        "html2bbcode": "^1.2.6",
+        "undici": "^7.21.0"
     },
     "devDependencies": {
         "html-loader": "^1.3.2",
