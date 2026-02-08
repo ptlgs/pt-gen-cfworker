@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -18,15 +19,22 @@ jobs:
       - name: Install Wrangler
         run: npm i @cloudflare/wrangler -g
 
-      - name: Publish to Cloudflare
-        run: |
-          echo '${{ secrets.WRANGLER }}' > wrangler.toml
-          wrangler publish
-        env:
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      # Cloudflare deployment disabled - run manually with 'wrangler deploy' locally
+      # - name: Publish to Cloudflare
+      #   run: |
+      #     echo '${{ secrets.WRANGLER }}' > wrangler.toml
+      #     wrangler publish
+      #   env:
+      #     CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+
+      - name: Build bundle
+        run: npm run build
 
       - name: Release Build Script
         run: |
+          mkdir -p worker
+          cp dist/bundle.js worker/script.js
+          cp index.html worker/
           cd worker
           git init
           git add *
