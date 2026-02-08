@@ -3,7 +3,7 @@ version: '3.8'
 services:
   pt-gen:
     build: .
-    image: ghcr.io/${GITHUB_USERNAME:-user}/pt-gen:latest
+    image: ghcr.io/${GITHUB_USERNAME:-user}/pt-gen-cfworker:latest
     container_name: pt-gen
     ports:
       - "8787:8787"
@@ -12,6 +12,14 @@ services:
       - AUTHOR=${AUTHOR:-Rhilip}
       # - APIKEY=${APIKEY}
       # - DISABLE_SEARCH=${DISABLE_SEARCH}
+      
+      # Optional: HTTP/HTTPS Proxy for bypassing geo-restrictions (e.g., Douban)
+      # Format: http://username:password@hostname:port
+      # - HTTP_PROXY=${HTTP_PROXY}
+      # - HTTPS_PROXY=${HTTPS_PROXY}
+      # Or use PROXY_URL as an alternative:
+      # - PROXY_URL=${PROXY_URL}
+      
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8787/"]
