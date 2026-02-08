@@ -43,9 +43,11 @@ if (PROXY_URL) {
   const httpsAgent = tunnel.httpsOverHttp(tunnelOptions);
   const httpAgent = tunnel.httpOverHttp(tunnelOptions);
   
-  // Override global fetch to use proxy agent
-  global.fetch = async function(resource, options = {}) {
+  // Override global fetch to use proxy agent with redirect following
+  global.fetch = async function(resource, options = {}, redirectCount = 0) {
     const startTime = Date.now();
+    const maxRedirects = options.maxRedirects || 10;
+    
     console.log(`[Fetch] ${options.method || 'GET'} ${resource}`);
     
     return new Promise((resolve, reject) => {
@@ -64,9 +66,27 @@ if (PROXY_URL) {
       
       const client = isHttps ? https : http;
       
-      const req = client.request(requestOptions, (res) => {
+      const req = client.request(requestOptions, async (res) => {
         console.log(`[Fetch] Response: ${res.statusCode} ${res.statusMessage}`);
-        console.log(`[Fetch] Headers:`, JSON.stringify(res.headers));
+        
+        // Handle redirects (3xx status codes)
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          if (redirectCount >= maxRedirects) {
+            reject(new Error(`Too many redirects (max: ${maxRedirects})`));
+            return;
+          }
+          
+          const redirectUrl = new URL(res.headers.location, resource).toString();
+          console.log(`[Fetch] Following redirect to: ${redirectUrl}`);
+          
+          try {
+            const redirectRes = await global.fetch(redirectUrl, options, redirectCount + 1);
+            resolve(redirectRes);
+          } catch (err) {
+            reject(err);
+          }
+          return;
+        }
         
         let data = '';
         let dataLength = 0;
