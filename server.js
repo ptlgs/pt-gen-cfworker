@@ -184,6 +184,12 @@ global.URLSearchParams = class URLSearchParams {
   }
   get(name) { return this._params.get(name) || null; }
   has(name) { return this._params.has(name); }
+  append(name, value) { this._params.set(name, value); }
+  toString() {
+    return Array.from(this._params.entries())
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&');
+  }
 };
 
 // KV Store polyfill
