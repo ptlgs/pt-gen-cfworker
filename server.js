@@ -12,15 +12,36 @@ const path = require('path');
 // Setup proxy if configured
 const PROXY_URL = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.PROXY_URL;
 if (PROXY_URL) {
-  const { HttpsProxyAgent } = require('https-proxy-agent');
+  const tunnel = require('tunnel');
   const https = require('https');
   const http = require('http');
   
+  // Parse proxy URL
+  const proxyUrl = new URL(PROXY_URL);
+  const proxyHost = proxyUrl.hostname;
+  const proxyPort = parseInt(proxyUrl.port) || 80;
+  const proxyAuth = proxyUrl.username && proxyUrl.password 
+    ? `${decodeURIComponent(proxyUrl.username)}:${decodeURIComponent(proxyUrl.password)}`
+    : undefined;
+  
   const sanitizedUrl = PROXY_URL.replace(/:\/\/[^:]+:/, '://***:');
   console.log('[Proxy] Enabled with:', sanitizedUrl);
+  console.log('[Proxy] Host:', proxyHost, 'Port:', proxyPort);
+  console.log('[Proxy] Auth present:', !!proxyAuth);
   
-  // Create proxy agent
-  const proxyAgent = new HttpsProxyAgent(PROXY_URL);
+  // Create tunnel agents for HTTP and HTTPS
+  const tunnelOptions = {
+    proxy: {
+      host: proxyHost,
+      port: proxyPort,
+    }
+  };
+  if (proxyAuth) {
+    tunnelOptions.proxy.proxyAuth = proxyAuth;
+  }
+  
+  const httpsAgent = tunnel.httpsOverHttp(tunnelOptions);
+  const httpAgent = tunnel.httpOverHttp(tunnelOptions);
   
   // Override global fetch to use proxy agent
   global.fetch = async function(resource, options = {}) {
@@ -38,7 +59,7 @@ if (PROXY_URL) {
         path: url.pathname + url.search,
         method: options.method || 'GET',
         headers: options.headers || {},
-        agent: proxyAgent,
+        agent: isHttps ? httpsAgent : httpAgent,
       };
       
       const client = isHttps ? https : http;
