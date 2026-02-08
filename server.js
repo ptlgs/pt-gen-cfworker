@@ -293,7 +293,13 @@ async function search_douban(query) {
       })),
     };
   } catch (e) {
-    return { error: "Failed to parse search results" };
+    return { 
+      error: "Failed to parse search results",
+      debug_info: {
+        response_preview: text.substring(0, 2000),
+        parse_error: e.message,
+      }
+    };
   }
 }
 
@@ -327,14 +333,33 @@ async function gen_douban(sid) {
   
   const ldScript = $('script[type="application/ld+json"]').html();
   if (!ldScript) {
-    return { ...data, error: "Could not find movie data" };
+    return { 
+      ...data, 
+      error: "Could not find movie data",
+      debug_info: {
+        final_url: resp.url || douban_link,
+        title: title,
+        has_challenge: text.includes('process(cha)'),
+        page_length: text.length,
+        page_preview: text.substring(0, 2000),
+      }
+    };
   }
   
   let ld_json;
   try {
     ld_json = JSON.parse(ldScript.replace(/(\r\n|\n|\r|\t)/gm, ''));
   } catch (e) {
-    return { ...data, error: "Failed to parse movie data" };
+    return { 
+      ...data, 
+      error: "Failed to parse movie data",
+      debug_info: {
+        final_url: resp.url || douban_link,
+        title: title,
+        ld_script_preview: ldScript.substring(0, 1000),
+        parse_error: e.message,
+      }
+    };
   }
   
   const fetch_anchor = (anchor) => anchor[0]?.nextSibling?.nodeValue?.trim() || '';
