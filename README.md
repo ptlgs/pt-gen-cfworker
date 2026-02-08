@@ -53,5 +53,49 @@ API Point：
 | `DOUBAN_COOKIE` | 豆瓣Cookie，使得能访问部分登录可见的资源 |
 | `INDIENOVA_COOKIE` | indienova 的 Cookie，见 [#15](https://github.com/Rhilip/pt-gen-cfworker/issues/15) |
 
+## Docker Deployment
+
+You can also run PT-Gen as a Docker container on your own server:
+
+### Using Docker Compose (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/Rhilip/pt-gen-cfworker.git
+cd pt-gen-cfworker
+
+# Copy and edit environment variables (optional)
+cp .env.example .env
+# Edit .env with your settings
+
+# Build and run
+docker-compose up -d
+
+# Access at http://localhost:8787
+```
+
+### Using Docker Run
+
+```bash
+# Pull from GitHub Container Registry (after first build)
+docker pull ghcr.io/rhilip/pt-gen-cfworker:latest
+
+# Or build locally
+docker build -t pt-gen .
+
+# Run
+docker run -d \
+  --name pt-gen \
+  -p 8787:8787 \
+  -e AUTHOR=YourName \
+  ghcr.io/rhilip/pt-gen-cfworker:latest
+```
+
+### Pre-built Images
+
+Images are automatically built and published to GitHub Container Registry:
+- `ghcr.io/rhilip/pt-gen-cfworker:latest` - Latest commit on master/main
+- `ghcr.io/rhilip/pt-gen-cfworker:v1.x.x` - Specific version tags
+
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FRhilip%2Fpt-gen-cfworker.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FRhilip%2Fpt-gen-cfworker?ref=badge_large)
