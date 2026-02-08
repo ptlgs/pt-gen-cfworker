@@ -24,6 +24,9 @@ if (PROXY_URL) {
   
   // Override global fetch to use proxy agent
   global.fetch = async function(resource, options = {}) {
+    const startTime = Date.now();
+    console.log(`[Fetch] ${options.method || 'GET'} ${resource}`);
+    
     return new Promise((resolve, reject) => {
       const url = new URL(resource);
       const isHttps = url.protocol === 'https:';
@@ -41,9 +44,25 @@ if (PROXY_URL) {
       const client = isHttps ? https : http;
       
       const req = client.request(requestOptions, (res) => {
+        console.log(`[Fetch] Response: ${res.statusCode} ${res.statusMessage}`);
+        console.log(`[Fetch] Headers:`, JSON.stringify(res.headers));
+        
         let data = '';
-        res.on('data', chunk => data += chunk);
+        let dataLength = 0;
+        
+        res.on('data', chunk => {
+          data += chunk;
+          dataLength += chunk.length;
+        });
+        
         res.on('end', () => {
+          const duration = Date.now() - startTime;
+          console.log(`[Fetch] Completed in ${duration}ms, received ${dataLength} bytes`);
+          
+          if (dataLength === 0) {
+            console.warn(`[Fetch] Warning: Empty response body`);
+          }
+          
           resolve({
             status: res.statusCode,
             statusText: res.statusMessage,
@@ -58,7 +77,16 @@ if (PROXY_URL) {
         });
       });
       
-      req.on('error', reject);
+      req.on('error', (err) => {
+        console.error(`[Fetch] Error:`, err.message);
+        reject(err);
+      });
+      
+      req.on('timeout', () => {
+        console.error(`[Fetch] Timeout`);
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
       
       if (options.body) {
         req.write(options.body);
@@ -304,35 +332,51 @@ async function search_douban(query) {
 }
 
 async function gen_douban(sid) {
+  console.log(`[Douban] Fetching movie ${sid}...`);
   const data = { site: "douban", sid };
   const douban_link = `https://movie.douban.com/subject/${sid}/`;
   
   let resp = await fetch(douban_link);
+  console.log(`[Douban] Initial response status: ${resp.status}`);
+  
   let text = await resp.text();
+  console.log(`[Douban] Initial response length: ${text.length}`);
   
   const challenge = await solveDoubanChallenge(resp.url || douban_link, text);
+  console.log(`[Douban] Challenge solved: ${challenge.solved}`);
+  
   if (challenge.solved) {
     text = challenge.text;
+    console.log(`[Douban] Using challenge response, length: ${text.length}`);
     if (challenge.cookies) {
+      console.log(`[Douban] Re-fetching with cookies...`);
       resp = await fetch(douban_link, {
         headers: { 'Cookie': challenge.cookies, 'User-Agent': 'Mozilla/5.0' }
       });
       text = await resp.text();
+      console.log(`[Douban] Re-fetch response length: ${text.length}`);
     }
   }
   
   if (text.includes('你想访问的页面不存在')) {
+    console.log(`[Douban] Movie not found`);
     return { ...data, error: NONE_EXIST_ERROR };
   }
   if (text.includes('检测到有异常请求')) {
+    console.log(`[Douban] Temporarily banned`);
     return { ...data, error: "GenHelp was temporary banned by Douban" };
   }
   
+  console.log(`[Douban] Parsing HTML...`);
   const $ = page_parser(text);
   const title = $("title").text().replace("(豆瓣)", "").trim();
+  console.log(`[Douban] Page title: "${title}"`);
   
   const ldScript = $('script[type="application/ld+json"]').html();
+  console.log(`[Douban] Found ld+json script: ${!!ldScript}`);
+  
   if (!ldScript) {
+    console.log(`[Douban] ERROR: Could not find movie data`);
     return { 
       ...data, 
       error: "Could not find movie data",
