@@ -12,38 +12,60 @@ const path = require('path');
 // Setup proxy if configured
 const PROXY_URL = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.PROXY_URL;
 if (PROXY_URL) {
-  const { ProxyAgent } = require('undici');
-  const { fetch: undiciFetch } = require('undici');
+  const { HttpsProxyAgent } = require('https-proxy-agent');
+  const https = require('https');
+  const http = require('http');
   
   const sanitizedUrl = PROXY_URL.replace(/:\/\/[^:]+:/, '://***:');
   console.log('[Proxy] Enabled with:', sanitizedUrl);
   
-  const dispatcher = new ProxyAgent(PROXY_URL);
+  // Create proxy agent
+  const proxyAgent = new HttpsProxyAgent(PROXY_URL);
   
-  // Override global fetch to use proxy
+  // Override global fetch to use proxy agent
   global.fetch = async function(resource, options = {}) {
-    const response = await undiciFetch(resource, {
-      ...options,
-      dispatcher,
+    return new Promise((resolve, reject) => {
+      const url = new URL(resource);
+      const isHttps = url.protocol === 'https:';
+      
+      // Build request options
+      const requestOptions = {
+        hostname: url.hostname,
+        port: url.port || (isHttps ? 443 : 80),
+        path: url.pathname + url.search,
+        method: options.method || 'GET',
+        headers: options.headers || {},
+        agent: proxyAgent,
+      };
+      
+      const client = isHttps ? https : http;
+      
+      const req = client.request(requestOptions, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode,
+            statusText: res.statusMessage,
+            headers: {
+              get: (name) => res.headers[name.toLowerCase()],
+              entries: () => Object.entries(res.headers),
+            },
+            text: () => Promise.resolve(data),
+            json: () => Promise.resolve(JSON.parse(data)),
+            clone: function() { return this; },
+          });
+        });
+      });
+      
+      req.on('error', reject);
+      
+      if (options.body) {
+        req.write(options.body);
+      }
+      
+      req.end();
     });
-    
-    // Convert undici response to Web API Response
-    const headers = {};
-    for (const [key, value] of response.headers.entries()) {
-      headers[key] = value;
-    }
-    
-    return {
-      status: response.status,
-      statusText: response.statusText,
-      headers: {
-        get: (name) => headers[name.toLowerCase()],
-        entries: () => Object.entries(headers),
-      },
-      text: () => response.text(),
-      json: () => response.json(),
-      clone: function() { return this; },
-    };
   };
   
   console.log('[Proxy] Fetch patched successfully');
