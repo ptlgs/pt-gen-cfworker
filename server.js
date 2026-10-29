@@ -69,8 +69,8 @@ if (PROXY_URL) {
       const req = client.request(requestOptions, async (res) => {
         console.log(`[Fetch] Response: ${res.statusCode} ${res.statusMessage}`);
         
-        // Handle redirects (3xx status codes)
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        // Handle redirects (3xx status codes), unless caller asked for manual handling
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && options.redirect !== 'manual') {
           if (redirectCount >= maxRedirects) {
             reject(new Error(`Too many redirects (max: ${maxRedirects})`));
             return;
